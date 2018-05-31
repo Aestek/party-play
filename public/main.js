@@ -30,7 +30,7 @@ $(function() {
                   bottom: -250,
                 },
                 function() { annimAvatar(id); });
-      }, Math.random() * 15000);
+      }, Math.random() * 30000);
     }
     annimAvatar("mouki");
     annimAvatar("marsou");

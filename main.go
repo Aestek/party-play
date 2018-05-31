@@ -1,7 +1,13 @@
 package main
 
-import "log"
+import (
+	"flag"
+	"log"
+)
 
 func main() {
-	log.Fatal(Serve("0.0.0.0:8888"))
+	addr := flag.String("addr", "0.0.0.0:8888", "addr")
+	flag.Parse()
+
+	log.Fatal(Serve(*addr))
 }
