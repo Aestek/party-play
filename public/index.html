@@ -1,19 +1,149 @@
 <html>
 
 <head>
+	<title>Du son pour l'anniv Léouille Rico Zazou</title>
+	<meta property="og:title" content="Du son pour l'anniv Léouille Rico Zazou" />
+	<meta property="og:description" content="Ecouter un peut de musique ensemble avant la soirée de ce soir :)" />
+
 	<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+	<script src="player.js"></script>
+	<script src="ws.js"></script>
 	<script src="main.js"></script>
-	<script src="https://www.youtube.com/iframe_api"></script>
+
+	<style>
+		body {
+			background: blue;
+			color: white;
+			text-align: center;
+			overflow: hidden;
+		}
+
+		@keyframes inb {
+			0% {
+				background: url("input-1.png");
+			}
+			32.9% {
+				background: url("input-1.png");
+			}
+			33% {
+				background: url("input-2.png");
+			}
+			65.9% {
+				background: url("input-2.png");
+			}
+			66% {
+				background: url("input-3.png");
+			}
+			100% {
+				background: url("input-3.png");
+			}
+		}
+
+		input[type="text"] {
+			width: 400px;
+			height: 80px;
+			border: 0;
+			background: url("input-1.png");
+			padding: 25px;
+			color: black;
+			font-size: 30px;
+			text-align: center;
+			animation-name: inb;
+			animation-duration: .8s;
+			animation-iteration-count: infinite;
+		}
+
+		#title {
+			margin: 30px 0;
+			font-size: 24px;
+		}
+
+		#music {
+			width: 1441px;
+			margin: 0 auto;
+			height: 400px;
+		}
+
+		#add {
+			float: left;
+			width: 400px;
+		}
+
+		#add-1,
+		#add-2 {
+			display: none;
+		}
+
+		#playlist {
+			float: left;
+			width: 400px;
+			margin: 0;
+			padding: 0;
+		}
+
+		#player-outer {
+			float: left;
+		}
+
+		#marsou {
+			position: absolute;
+			right: 15%;
+			bottom: -250px;
+			transform: rotate(-10deg);
+		}
+
+		#mouki {
+			position: absolute;
+			left: 20%;
+			bottom: -250px;
+			transform: rotate(10deg);
+		}
+
+		#rico {
+			position: absolute;
+			left: 60%;
+			bottom: -250px;
+			transform: rotate(5deg);
+		}
+	</style>
 </head>
 
 <body>
-	<input type="text" id="name" placeholder="name">
-	<input type="text" id="addv" placeholder="video">
-	<button id="addb">Add</button>
-	<div id="player"></div>
-	<ul id="playlist">
+	<div id="title">
+		<img src="title.png">
+	</div>
+	<div id="music">
+		<div id="add">
+			<div id="add-1">
+				<img src="name.png">
+				<br>
+				<input type="text" id="name" placeholder="TON NOM">
+				<br>
+				<img src="ok-btn.png" id="name-ok">
+			</div>
+			<div id="add-2">
+				<img src="yt.png">
+				<br>
+				<input type="text" id="addv" placeholder="TON URL ICI">
+				<img src="ok-btn.png" id="addb">
+			</div>
+		</div>
 
-	</ul>
+		<div id="player-outer">
+			<div>
+				<div id="player"></div>
+			</div>
+
+			Volume:
+			<input type="range" id="volume" min="0" max="100" value="80" />
+		</div>
+
+		<ul id="playlist"></ul>
+	</div>
+
+	<img id="marsou" src="marsou.png">
+	<img id="mouki" src="mouki.png">
+	<img id="rico" src="rico.png">
 </body>
 
 </html>

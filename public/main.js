@@ -1,34 +1,132 @@
 $(function() {
-  conn = new WebSocket('ws://' + document.location.host + '/ws');
-  conn.onclose = function(evt) {
-    console.warn('connection closed');
-  };
-  conn.onmessage = function(evt) {
-    console.log('got message :', evt.data);
-    buildPL(JSON.parse(evt.data));
-  };
+  loadPlayer("player", function(player) {
 
-  var PC = $('#playlist');
+    $("#volume").change(function() { player.setVolume($("#volume").val()); });
 
-  $('#addb').click(function() {
-    var id = $('#addv').val();
-    var name = $('#name').val();
-    $.post('/add?id=' + id + '&user=' + name);
-  });
+    var wantPaused = false;
 
-  function buildPL(pl) {
-    var plContent = '';
+    player.addEventListener("onStateChange", function(s) {
+      if (s.data == 2) {
+        wantPaused = true;
+      }
+      if (s.data == 1) {
+        wantPaused = false;
+      }
+    });
 
-    if (pl.items) {
-      for (var i in pl.items) {
-        plContent += buildPlItem(pl.items[i]);
+    function annimAvatar(id) {
+      setTimeout(function() {
+        $("#" + id)
+            .css({
+              left: (Math.random() * 80 + 10) + "%",
+              transform: 'rotate(' + (Math.random() * 50 - 25) + 'deg)',
+            })
+            .animate({
+              bottom: -50,
+            })
+            .delay(Math.random() * 1000)
+            .animate(
+                {
+                  bottom: -250,
+                },
+                function() { annimAvatar(id); });
+      }, Math.random() * 15000);
+    }
+    annimAvatar("mouki");
+    annimAvatar("marsou");
+    annimAvatar("rico");
+
+    var PC = $('#playlist');
+    var userName = localStorage.getItem("username");
+
+    if (!userName) {
+      $("#add-1").show();
+      $("#add-2").hide();
+    } else {
+      $("#add-2").show();
+      $("#add-1").hide();
+    }
+
+    $("#name-ok")
+        .click(function() {
+          userName = $("#name").val();
+          if (!userName) {
+            return;
+          }
+
+          localStorage.setItem("username", userName);
+          $("#add-2").show();
+          $("#add-1").hide();
+        });
+
+    $('#addb')
+        .click(function() {
+          var id = parseYTU($('#addv').val());
+          if (!id) {
+            return;
+          }
+          $.post('/add?id=' + id + '&user=' + userName).fail(function(d) {
+            alert(d.responseText);
+          });
+          $('#addv').val('');
+        });
+
+    function buildPL(pl) {
+      PC.empty();
+
+      if (pl.items) {
+        for (var i in pl.items) {
+          PC.append(buildPlItem(pl.items[i]));
+        }
       }
     }
 
-    PC.html(plContent);
+    function buildPlItem(item) {
+      var e = $(
+          '<li>' +
+          '<div class="title"><b>' + item.video.title + '</b></div>' +
+          '<div class="added-by">Ajouté par ' + item.added_by.name + '</div>' +
+          '<div class="likes"><b>' + item.likes.length +
+          ' votes!</b> <button class="vote">JE VOTE !</button></div>' +
+          '<img src="sep.png">' +
+          '</li>');
+
+      e.find(".vote").click(function() {
+        if (!userName) {
+          alert("Met ton nom pour voter ! #GDPR");
+          return;
+        }
+        $.post("/like?id=" + item.video.id + "&user=" + userName)
+            .fail(function(d) { alert(d.responseText); });
+      });
+
+      return e;
+    }
+
+    onPlaylist(function(pl) {
+      buildPL(pl);
+      if (!pl.items || !pl.items.length) {
+        return;
+      }
+      var plCurrent = pl.items[0];
+      var pCurrentId = parseYTU(player.getVideoUrl());
+
+      if (plCurrent.video.id != pCurrentId) {
+        var start =
+            (new Date().getTime() - Date.parse(pl.current_started_at)) / 1000;
+
+        player[wantPaused ? "cueVideoById" : "loadVideoById"](
+            plCurrent.video.id, start);
+      }
+    });
+  });
+});
+
+function parseYTU(u) {
+  var f = u.match(/[?&]v=([^&]+)/);
+  if (!f) {
+    return null;
   }
 
-  function buildPlItem(item) {
-    return '<li>' + item.video.title + '</li>'
-  }
-});
+  return f[1];
+}

@@ -1,6 +1,6 @@
 package main
 
 type User struct {
-	Name string
-	Pic  string
+	Name string `json:"name,omitempty"`
+	Pic  string `json:"pic,omitempty"`
 }

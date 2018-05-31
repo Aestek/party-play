@@ -1,17 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/knadh/go-get-youtube/youtube"
 	"github.com/pkg/errors"
 )
 
 var P = &Playlist{
-	Index: -1,
-	C:     make(chan struct{}),
+	C: make(chan struct{}),
 }
 
 var changedToken = struct{}{}
@@ -46,22 +45,19 @@ func (i *Item) Like(by *User) {
 type Playlist struct {
 	lock             sync.RWMutex
 	Items            []*Item       `json:"items"`
-	Index            int           `json:"index"`
 	CurrentStartedAt time.Time     `json:"current_started_at"`
 	C                chan struct{} `json:"-"`
 }
 
 func (p *Playlist) Add(id string, by *User) error {
-	video, err := youtube.Get(id)
+	v, err := YTInfo(id)
 	if err != nil {
 		return errors.Wrap(err, "youtube fetch")
 	}
+	defer p.changed()
 
-	v := Video{
-		ID:       id,
-		Title:    video.Title,
-		Img:      video.Thumbnail_url,
-		Duration: time.Duration(video.Length_seconds) * time.Second,
+	if v.Duration > 10*time.Minute {
+		return fmt.Errorf("Durée de video max: 10min")
 	}
 
 	item := &Item{
@@ -73,76 +69,57 @@ func (p *Playlist) Add(id string, by *User) error {
 	idx := p.IndexOf(v.ID)
 	if idx != -1 {
 		p.Like(v.ID, by)
-		p.changed()
 		return nil
+	}
+
+	for _, i := range p.Items {
+		if i.AddedBy.Name == by.Name {
+			return fmt.Errorf("Tu as déjà ajouté une vidéo !")
+		}
 	}
 
 	p.lock.Lock()
 	defer p.lock.Unlock()
+	l := len(p.Items)
 	p.Items = append(p.Items, item)
-
-	if p.Index != -1 {
-		return nil
+	if l == 0 {
+		p.next()
 	}
-
-	p.Index = len(p.Items) - 1
-	p.CurrentStartedAt = time.Now()
-	p.changed()
-
-	time.AfterFunc(v.Duration, func() {
-		p.lock.Lock()
-		defer p.lock.Unlock()
-
-		next := p.Index + 1
-		if next >= len(p.Items) {
-			p.Index = -1
-			return
-		}
-
-		p.Index = next
-		p.CurrentStartedAt = time.Now()
-		p.changed()
-	})
-
 	return nil
 }
 
-func (p *Playlist) start(idx int) {
-	if idx >= len(p.Items) {
-		p.Index = -1
+func (p *Playlist) next() {
+	if len(p.Items) == 0 {
 		return
 	}
 
-	p.Index = idx
 	p.CurrentStartedAt = time.Now()
-	p.changed()
 
-	time.AfterFunc(p.Items[idx].Video.Duration, func() {
+	time.AfterFunc(p.Items[0].Video.Duration+3*time.Second, func() {
 		p.lock.Lock()
-		defer p.lock.Unlock()
-
-		next := p.Index + 1
-
-		p.Index = next
-		p.CurrentStartedAt = time.Now()
+		p.Items = p.Items[1:]
+		p.lock.Unlock()
+		p.next()
 		p.changed()
 	})
 }
 
 func (p *Playlist) Like(id string, by *User) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	idx := p.IndexOf(id)
 	if idx == -1 {
 		return
 	}
 
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	p.Items[idx].Like(by)
 
-	sort.SliceStable(p.Items, func(i, j int) bool {
-		return len(p.Items[j].Likes) < len(p.Items[i].Likes)
-	})
+	if len(p.Items) > 1 {
+		sort.SliceStable(p.Items[1:], func(i, j int) bool {
+			return len(p.Items[j].Likes) < len(p.Items[i].Likes)
+		})
+	}
 	p.changed()
 }
 

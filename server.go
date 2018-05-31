@@ -26,9 +26,13 @@ func Serve(addr string) error {
 
 	http.HandleFunc("/add", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		P.Add(q.Get("id"), &User{
+		err := P.Add(q.Get("id"), &User{
 			Name: q.Get("user"),
 		})
+		if err != nil {
+			log.Print(err)
+			http.Error(w, err.Error(), 500)
+		}
 	})
 
 	http.HandleFunc("/like", func(w http.ResponseWriter, r *http.Request) {
