@@ -75,6 +75,15 @@ func Serve(addr string) error {
 		if err != nil {
 			log.Println(err)
 		}
+
+		go func() {
+			for {
+				if _, _, err := c.NextReader(); err != nil {
+					c.Close()
+					break
+				}
+			}
+		}()
 	})
 
 	go func() {
@@ -95,7 +104,6 @@ func Serve(addr string) error {
 				err := c.WriteMessage(websocket.TextMessage, pl)
 				if err != nil {
 					log.Println(err)
-					closeWs(c)
 				}
 			}
 		}
