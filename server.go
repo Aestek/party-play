@@ -17,6 +17,12 @@ func Serve(addr string) error {
 	wsConsLock := sync.RWMutex{}
 	wsCons := make(map[*websocket.Conn]struct{})
 
+	closeWs := func(c *websocket.Conn) {
+		wsConsLock.Lock()
+		delete(wsCons, c)
+		wsConsLock.Unlock()
+	}
+
 	statikFS, err := fs.New()
 	if err != nil {
 		log.Fatal(err)
@@ -56,9 +62,7 @@ func Serve(addr string) error {
 		wsCons[c] = struct{}{}
 		wsConsLock.Unlock()
 		c.SetCloseHandler(func(code int, msg string) error {
-			wsConsLock.Lock()
-			delete(wsCons, c)
-			wsConsLock.Unlock()
+			closeWs(c)
 			return nil
 		})
 
@@ -80,10 +84,18 @@ func Serve(addr string) error {
 				log.Fatal(err)
 			}
 
+			cons := []*websocket.Conn{}
+			wsConsLock.RLock()
 			for c := range wsCons {
+				cons = append(cons, c)
+			}
+			wsConsLock.RUnlock()
+
+			for _, c := range cons {
 				err := c.WriteMessage(websocket.TextMessage, pl)
 				if err != nil {
 					log.Println(err)
+					closeWs(c)
 				}
 			}
 		}
