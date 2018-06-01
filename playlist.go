@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/otium/ytdl"
+
 	"github.com/pkg/errors"
 )
 
@@ -50,11 +52,17 @@ type Playlist struct {
 }
 
 func (p *Playlist) Add(id string, by *User) error {
-	v, err := YTInfo(id)
+	vid, err := ytdl.GetVideoInfoFromID(id)
 	if err != nil {
 		return errors.Wrap(err, "youtube fetch")
 	}
 	defer p.changed()
+
+	v := Video{
+		ID:       id,
+		Title:    vid.Title,
+		Duration: vid.Duration,
+	}
 
 	if v.Duration > 10*time.Minute {
 		return fmt.Errorf("Durée de video max: 10min")
@@ -83,25 +91,29 @@ func (p *Playlist) Add(id string, by *User) error {
 	l := len(p.Items)
 	p.Items = append(p.Items, item)
 	if l == 0 {
-		p.next()
+		p.start()
 	}
 	return nil
 }
 
-func (p *Playlist) next() {
+func (p *Playlist) start() {
 	if len(p.Items) == 0 {
 		return
 	}
 
 	p.CurrentStartedAt = time.Now()
+	time.AfterFunc(p.Items[0].Video.Duration+3*time.Second, p.next)
+}
 
-	time.AfterFunc(p.Items[0].Video.Duration+3*time.Second, func() {
-		p.lock.Lock()
-		p.Items = p.Items[1:]
-		p.lock.Unlock()
-		p.next()
-		p.changed()
-	})
+func (p *Playlist) next() {
+	p.lock.Lock()
+	if len(p.Items) == 0 {
+		return
+	}
+	p.Items = p.Items[1:]
+	p.lock.Unlock()
+	p.start()
+	p.changed()
 }
 
 func (p *Playlist) Like(id string, by *User) {

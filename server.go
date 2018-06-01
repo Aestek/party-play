@@ -42,6 +42,10 @@ func Serve(addr string) error {
 		})
 	})
 
+	http.HandleFunc("/baleno-next", func(w http.ResponseWriter, r *http.Request) {
+		P.next()
+	})
+
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		c, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
