@@ -4,7 +4,7 @@ function onPlaylist(cb) {
     conn = new WebSocket('ws://' + document.location.host + '/ws');
     conn.onopen = function(event) { console.log("connected"); };
     conn.onclose = function(evt) {
-      console.warn('connection closed');
+      console.warn('connection closed', arguments);
       setTimeout(connect, 2000);
     };
     conn.onmessage = function(evt) {
